@@ -9,11 +9,9 @@
 namespace Blueshift\Blueshiftconnect\Observer\Customer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Event\Observer as EventObserver;
-use Psr\Log\LoggerInterface as Logger;
 use Blueshift\Blueshiftconnect\Helper\BlueshiftConfig as BlueshiftConfig;
 
 class CustomerRegister implements ObserverInterface {
-    protected $logger;
     /**
      * @param ScopeConfigInterface $scopeConfig,
      * @param \Magento\Framework\UrlInterface $url
@@ -29,9 +27,6 @@ class CustomerRegister implements ObserverInterface {
      * @param \Magento\Framework\Event\Observer $observer
      */
     public function execute(\Magento\Framework\Event\Observer $observer){
-        $writer = new \Zend\Log\Writer\Stream(BP . '/var/log/observer.log');
-        $logger = new \Zend\Log\Logger();
-        $logger->addWriter($writer);
         try{
             $customer_data =  array();
             $userkey = $this->_scopeConfig->getValue('blueshiftconnect/Step1/userapikey');
@@ -89,18 +84,17 @@ class CustomerRegister implements ObserverInterface {
             $customer_data['customers'][0]['unsubscribed_at']=$unsubscribed_at;
             
             $json_data = json_encode($customer_data);
-            $logger->info($json_data);
             $path = "customers/bulk";
             $method = "POST";
             $result = $this->blueshiftConfig->curlFunc($json_data,$path,$method,$password,$userkey);
             if($result['status']== 200){
-                $logger->info("Customer creation: status = ok"); 
+                $this->blueshiftConfig->loggerWrite("Customer creation: status = ok",'observer');
             }else{
                 $result = json_encode($result);
-                $logger->info("Customer creation: ".$result);
+                $this->blueshiftConfig->loggerWrite("Customer creation: ".$result,'observer');
             }  
         }catch (\Exception $e) {
-            $logger->info($e->getMessage());
+            $this->blueshiftConfig->loggerWrite($e->getMessage(),'observer');
         }
     }
 }

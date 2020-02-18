@@ -8,11 +8,9 @@
  */
 namespace Blueshift\Blueshiftconnect\Observer\Order;
 use Magento\Framework\Event\ObserverInterface;
-use Psr\Log\LoggerInterface as Logger;
 use Blueshift\Blueshiftconnect\Helper\BlueshiftConfig as BlueshiftConfig;
 
 class OrderCreation implements ObserverInterface {
-    protected $logger;
     protected $orderRepository;
     /**
      * @param ScopeConfigInterface $scopeConfig,
@@ -30,9 +28,6 @@ class OrderCreation implements ObserverInterface {
      * @param \Magento\Framework\Event\Observer $observer
      */
     public function execute(\Magento\Framework\Event\Observer $observer){ 
-        $writer = new \Zend\Log\Writer\Stream(BP . '/var/log/observer.log');
-        $logger = new \Zend\Log\Logger();
-        $logger->addWriter($writer);
         try{
             $customer_data =  array();
             $eventkey = $this->_scopeConfig->getValue('blueshiftconnect/Step1/eventapikey');
@@ -43,10 +38,12 @@ class OrderCreation implements ObserverInterface {
             $baseUrl = $storeManager->getStore()->getBaseUrl();
             $order = $observer->getOrder();
             $order_details = $order->getData();
+            $billStreet = $order->getBillingAddress();
+            $shipStreet = $order->getShippingAddress();
             $orders = $order->getAllItems();
             $i=0;
             $orderRepository = $this->orderRepository->get($order_details['id']);
-            $items = $observer->getQuote()->getAllItems();
+           // $items = $observer->getQuote()->getAllItems();
             foreach ($orders as $orderItem) {
                 $orderItems = $orderItem->getData();
                 $data['events'][$i]['order_id']=$order_details['id'];
@@ -61,6 +58,8 @@ class OrderCreation implements ObserverInterface {
                 $data['events'][$i]['products']['product_id']=$orderItems['product_id'];
                 $data['events'][$i]['products']['discounted_price']=$orderItems['original_price'];
                 $data['events'][$i]['revenue']=$orderRepository->getGrandTotal();
+                $data['events'][$i]['bill_address']=$billStreet->getData();
+                $data['events'][$i]['ship_address']=$shipStreet->getData();
                 $i++;
             } 
             $json_data = json_encode($data);
@@ -68,13 +67,13 @@ class OrderCreation implements ObserverInterface {
             $method = "POST";
             $result = $this->blueshiftConfig->curlFunc($json_data,$path,$method,$password,$eventkey);
             if($result['status']== 200){
-                $logger->info("Order creation: status = ok"); 
+                $this->blueshiftConfig->loggerWrite("Order creation: status = ok",'observer');
             }else{
                 $result = json_encode($result);
-                $logger->info("Order creation: ".$result); 
+                $this->blueshiftConfig->loggerWrite("Order creation: ".$result,'observer');
             } 
         }catch (\Exception $e) {
-            $logger->info($e->getMessage());
+            $this->blueshiftConfig->loggerWrite($e->getMessage(),'observer');
         }
     }
 }

@@ -31,8 +31,8 @@
         <observer name="blueshift_customer_delete_after" instance="Blueshift\Blueshiftconnect\Observer\Customer\CustomerDelete" />
     </event>
 
-    <event name="checkout_submit_all_after">
-        <observer name="blueshift_checkout_submit_all_after" instance="Blueshift\Blueshiftconnect\Observer\Order\OrderCreation" />
+    <event name="sales_order_save_commit_after">
+        <observer name="blueshift_sales_order_save_commit_after" instance="Blueshift\Blueshiftconnect\Observer\Order\OrderCreation" />
     </event>
     
     <event name="checkout_cart_update_items_after">
